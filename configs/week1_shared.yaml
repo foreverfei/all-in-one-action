@@ -7,8 +7,11 @@ project:
 
 executor:
   name: instructir
-  checkpoint: REPLACE_WITH_LOCAL_CHECKPOINT
   external_repo: external/InstructIR
+  config_file: external/InstructIR/configs/eval5d.yml
+  image_checkpoint: external/InstructIR/models/im_instructir-7d.pt
+  lm_head_checkpoint: external/InstructIR/models/lm_instructir-7d.pt
+  device: auto
   input_range: [0.0, 1.0]
   output_range: [0.0, 1.0]
 
