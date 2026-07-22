@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Week1RolloutMetadata",
+  "type": "object",
+  "required": [
+    "sample_id",
+    "clean_path",
+    "input_path",
+    "actions",
+    "executor",
+    "checkpoint",
+    "seed",
+    "git_commit"
+  ],
+  "properties": {
+    "sample_id": {"type": "string"},
+    "clean_path": {"type": "string"},
+    "input_path": {"type": "string"},
+    "actions": {"type": "array", "items": {"type": "string"}},
+    "executor": {"type": "string"},
+    "checkpoint": {"type": "string"},
+    "seed": {"type": "integer"},
+    "git_commit": {"type": "string"},
+    "tensor_shape": {"type": "array", "items": {"type": "integer"}},
+    "tensor_dtype": {"type": "string"},
+    "tensor_range": {"type": "array", "items": {"type": "number"}}
+  },
+  "additionalProperties": true
+}
