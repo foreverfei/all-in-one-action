@@ -1,0 +1,41 @@
+project:
+  seed: 2026
+  image_size: 256
+  clean_count: 20
+  data_root: data/week1
+  output_root: outputs/week1
+
+executor:
+  name: instructir
+  checkpoint: REPLACE_WITH_LOCAL_CHECKPOINT
+  external_repo: external/InstructIR
+  input_range: [0.0, 1.0]
+  output_range: [0.0, 1.0]
+
+actions:
+  - dehaze
+  - derain
+  - enhance
+
+degradation_combinations:
+  - [haze, rain]
+  - [haze, lowlight]
+  - [rain, lowlight]
+
+degradations:
+  haze:
+    transmission: [0.35, 0.60]
+    atmospheric_light: [0.80, 1.00]
+  rain:
+    density: [0.010, 0.025]
+    length: [12, 22]
+    angle_deg: [-15, 15]
+    opacity: [0.20, 0.35]
+  lowlight:
+    gamma: [1.8, 2.4]
+    scale: [0.50, 0.80]
+
+metrics:
+  names: [psnr, lpips, dists]
+  identity_threshold: 1.0e-5
+  data_range: 1.0
