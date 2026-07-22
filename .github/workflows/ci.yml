@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "student-a/**", "student-b/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install base and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run unit tests
+        run: pytest -q
+      - name: Run mock pipeline
+        run: |
+          python -m lineA.scripts.generate_week1_data \
+            --config configs/week1_shared.yaml \
+            --mock-clean-count 2
+          python -m lineA.scripts.generate_week1_rollouts \
+            --config configs/week1_shared.yaml \
+            --executor mock
+          python -m lineA.scripts.check_rollout_integrity \
+            --config configs/week1_shared.yaml
+          python -m lineB.scripts.build_week1_labels \
+            --config configs/week1_shared.yaml \
+            --metrics psnr
+          python -m lineB.scripts.validate_identity \
+            --labels outputs/week1/labels/identity_check.csv
