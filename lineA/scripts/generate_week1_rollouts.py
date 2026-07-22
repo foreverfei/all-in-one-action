@@ -44,8 +44,11 @@ def build_executor(config: dict[str, Any], name: str) -> RestorationExecutor:
         executor_cfg = config["executor"]
         return InstructIRExecutor.from_external(
             external_repo=executor_cfg["external_repo"],
-            checkpoint=executor_cfg["checkpoint"],
+            config_file=executor_cfg["config_file"],
+            image_checkpoint=executor_cfg["image_checkpoint"],
+            lm_head_checkpoint=executor_cfg["lm_head_checkpoint"],
             prompts=prompts,
+            device=executor_cfg.get("device", "auto"),
         )
     raise ValueError(f"Unknown executor {name!r}.")
 
@@ -53,6 +56,16 @@ def build_executor(config: dict[str, Any], name: str) -> RestorationExecutor:
 def save_array(path: Path, array: np.ndarray) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     np.save(path, np.asarray(array, dtype=np.float32))
+
+
+def checkpoint_description(config: dict[str, Any], executor_name: str) -> str:
+    if executor_name == "mock":
+        return "mock-executor"
+    executor_cfg = config["executor"]
+    return (
+        f"image={executor_cfg['image_checkpoint']};"
+        f"lm_head={executor_cfg['lm_head_checkpoint']}"
+    )
 
 
 def main() -> None:
@@ -89,7 +102,7 @@ def main() -> None:
             **row,
             "actions": list(actions),
             "executor": args.executor,
-            "checkpoint": str(config["executor"]["checkpoint"]),
+            "checkpoint": checkpoint_description(config, args.executor),
             "git_commit": git_commit(),
             "tensor_shape": list(image.shape),
             "tensor_dtype": str(image.dtype),
