@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime data and model assets
+data/
+outputs/
+checkpoints/
+external/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+
+# Local configuration
+.env
+configs/local*.yaml
+
+# OS
+.DS_Store
+Thumbs.db
