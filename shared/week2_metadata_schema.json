@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Week2CounterfactualProgramMetadata",
+  "type": "object",
+  "required": [
+    "program_id",
+    "clean_id",
+    "degradation_program",
+    "source_degradations",
+    "application_order",
+    "clean_path",
+    "source_path",
+    "oracle_mid_paths"
+  ],
+  "properties": {
+    "program_id": {"type": "string"},
+    "clean_id": {"type": "string"},
+    "pair_seed": {"type": "integer"},
+    "source_degradations": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"enum": ["haze", "rain", "lowlight"]}
+    },
+    "application_order": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"enum": ["haze", "rain", "lowlight"]}
+    },
+    "degradation_program": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "order", "parameters"],
+        "properties": {
+          "type": {"enum": ["haze", "rain", "lowlight"]},
+          "order": {"type": "integer", "minimum": 0},
+          "parameters": {"type": "object"},
+          "seed": {"type": ["integer", "null"]}
+        }
+      }
+    },
+    "clean_path": {"type": "string"},
+    "source_path": {"type": "string"},
+    "oracle_mid_paths": {"type": "object"},
+    "executor": {"type": "string"},
+    "directions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action_i",
+          "action_j",
+          "removed_degradation",
+          "remaining_degradation"
+        ]
+      }
+    }
+  }
+}
