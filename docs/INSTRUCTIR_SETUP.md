@@ -1,6 +1,6 @@
 # InstructIR 接入说明
 
-本仓库不复制 InstructIR 源码和权重。统一通过 `lineA/executors/instructir_wrapper.py` 接入本地官方仓库。
+本仓库不复制 InstructIR 源码和权重，通过 `lineA/executors/instructir_wrapper.py` 调用官方实现。
 
 ## 1. 准备官方仓库
 
@@ -9,9 +9,7 @@ mkdir -p external
 git clone https://github.com/mv-lab/InstructIR.git external/InstructIR
 ```
 
-按照官方 README 安装依赖和下载权重。
-
-Week 1 配置默认期望：
+按官方 README 安装依赖并准备：
 
 ```text
 external/InstructIR/configs/eval5d.yml
@@ -19,14 +17,25 @@ external/InstructIR/models/im_instructir-7d.pt
 external/InstructIR/models/lm_instructir-7d.pt
 ```
 
-如果路径不同，只修改本地配置文件，不修改学生公共代码。
+正式 noise-blur 配置默认使用以上路径。
 
-## 2. 配置
+## 2. 正式 action prompts
 
-复制公共配置：
+统一使用 `shared/action_prompts.yaml`：
+
+```text
+denoise: Remove Gaussian noise from the image while preserving image details.
+deblur: Remove motion blur from the image while preserving image details.
+```
+
+不得在不同顺序或不同数据集上临时修改 prompt。若修改 prompt，必须建立新实验 ID 和新配置。
+
+## 3. 本地路径
+
+公共配置使用仓库相对路径。若本地路径不同，复制配置：
 
 ```bash
-cp configs/week1_shared.yaml configs/local_week1.yaml
+cp configs/pilot_noise_blur.yaml configs/local_pilot_noise_blur.yaml
 ```
 
 修改：
@@ -34,80 +43,83 @@ cp configs/week1_shared.yaml configs/local_week1.yaml
 ```yaml
 executor:
   external_repo: /absolute/path/to/InstructIR
-  config_file: /absolute/path/to/InstructIR/configs/eval5d.yml
+  config_path: /absolute/path/to/InstructIR/configs/eval5d.yml
   image_checkpoint: /absolute/path/to/im_instructir-7d.pt
   lm_head_checkpoint: /absolute/path/to/lm_instructir-7d.pt
-  device: auto
+  device: cuda
 ```
 
-`configs/local*.yaml` 已加入 `.gitignore`，不得提交绝对本地路径。
+`configs/local*.yaml` 不提交 Git。
 
-## 3. 单图检查
+## 4. Pilot 检查
 
-先生成一张 mock 输入，再改用真实 executor：
+先运行代码 smoke test：
 
 ```bash
-python -m lineA.scripts.generate_week1_data \
-  --config configs/local_week1.yaml \
-  --mock-clean-count 1
-
-python -m lineA.scripts.generate_week1_rollouts \
-  --config configs/local_week1.yaml \
-  --executor instructir
+bash scripts/run_pilot_mock.sh
 ```
 
-必须检查：
+再运行真实 InstructIR pilot：
+
+```bash
+bash scripts/run_noise_blur_audit.sh \
+  configs/local_pilot_noise_blur.yaml \
+  data_sources/div2k_valid_first20 \
+  instructir
+```
+
+随机抽查至少 5 个 program，确认：
 
 ```text
-shape: H x W x 3
-dtype: float32
-range: [0,1]
-RGB order unchanged
-no JPEG/uint8 round trip
+input/output shape: 256 × 256 × 3
+input/output dtype: float32
+input/output range: [0,1]
+denoise 输出主要降低噪声
+deblur 输出主要处理模糊
+无 PNG/JPEG 中间读写
 ```
 
-## 4. 官方推理路径对应关系
+## 5. Adapter 行为
 
-adapter 与官方 `predict.py` 保持相同组件：
+adapter 使用官方推理组件：
 
 ```text
 eval5d.yml
-  -> instructir.create_model(...)
-  -> load image-model state dict
-  -> LanguageModel
-  -> LMHead
-  -> text embedding
-  -> model(image, text_embedding)
-  -> clip output to [0,1]
+-> instructir.create_model(...)
+-> image-model checkpoint
+-> LanguageModel
+-> LMHead
+-> model(image, text_embedding)
 ```
 
-本仓库的额外约束：
+本仓库额外保证：
 
 - 模型只加载一次；
-- 图像模型放在指定 device；
-- language model 和 LM head 在 CPU 生成 embedding；
-- text embedding 再移动到图像模型 device；
-- 输出直接转为 float32 NumPy；
-- 不保存临时 PNG 后再读取。
+- action prompt embedding 在初始化时计算并缓存；
+- 图像模型和 text embedding 位于同一 device；
+- 推理使用 `torch.no_grad()`；
+- 输出直接转换为 float32 NumPy；
+- 不通过 uint8 文件交换中间结果；
+- rollout metadata 记录 checkpoint 和 baseline 配置。
 
-## 5. 常见错误
+## 6. 常见错误
 
-### `Missing InstructIR repository`
+### Missing InstructIR repository
 
-检查 `external_repo` 是否存在。
+检查 `executor.external_repo`。
 
-### `Could not import models.instructir`
+### Missing InstructIR config/checkpoint
 
-确认配置指向官方仓库根目录，而不是 `models/` 子目录。
+检查 `config_path`、`image_checkpoint` 和 `lm_head_checkpoint` 是否为真实文件。
 
-### checkpoint key mismatch
+### Checkpoint key mismatch
 
-确认使用的 config 与 checkpoint 属于同一官方版本。
+确认 `eval5d.yml`、image checkpoint 和 LM-head checkpoint 属于同一官方版本。
 
 ### CUDA device mismatch
 
-将 `device` 暂时设置为 `cpu` 定位问题；不要在 wrapper 内临时移动部分层。
+先将 `device` 设置为 `cpu` 定位加载问题，不在 wrapper 中临时移动部分层。
 
 ### Hugging Face model 无法下载
 
-`LanguageModel` 会加载配置中指定的文本模型。需要提前下载或配置可访问的本地缓存。
+`LanguageModel` 会加载 InstructIR 配置中指定的文本模型。需要提前下载或配置本地缓存。
