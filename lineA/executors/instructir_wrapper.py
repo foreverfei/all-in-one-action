@@ -1,8 +1,8 @@
 """Adapter for the official mv-lab/InstructIR inference structure.
 
-No InstructIR source code or checkpoint is committed to this repository.
-The adapter imports a local checkout and follows the official `predict.py` path:
-`eval5d.yml` -> image model -> language model -> LM head -> restored image.
+No InstructIR source code or checkpoint is committed to this repository. The
+adapter imports a local checkout and follows the official ``predict.py`` path:
+``eval5d.yml -> image model -> language model -> LM head -> restored image``.
 """
 
 from __future__ import annotations
@@ -21,11 +21,15 @@ PredictFunction = Callable[[np.ndarray, str], np.ndarray]
 
 
 class InstructIRExecutor(RestorationExecutor):
-    supported_actions = ("dehaze", "derain", "enhance")
-
-    def __init__(self, predict_fn: PredictFunction, checkpoint: str) -> None:
+    def __init__(
+        self,
+        predict_fn: PredictFunction,
+        checkpoint: str,
+        supported_actions: tuple[str, ...],
+    ) -> None:
         self._predict_fn = predict_fn
         self.checkpoint = checkpoint
+        self.supported_actions = supported_actions
 
     def restore(self, image: np.ndarray, action: str) -> np.ndarray:
         array = self._validate(image, action)
@@ -51,6 +55,9 @@ class InstructIRExecutor(RestorationExecutor):
         prompts: dict[str, str],
         device: str = "auto",
     ) -> "InstructIRExecutor":
+        if not prompts:
+            raise ValueError("At least one action prompt is required.")
+        supported_actions = tuple(prompts)
         predict_fn = load_external_predictor(
             external_repo=Path(external_repo),
             config_file=Path(config_file),
@@ -60,7 +67,11 @@ class InstructIRExecutor(RestorationExecutor):
             device=device,
         )
         checkpoint_name = f"image={image_checkpoint};lm_head={lm_head_checkpoint}"
-        return cls(predict_fn=predict_fn, checkpoint=checkpoint_name)
+        return cls(
+            predict_fn=predict_fn,
+            checkpoint=checkpoint_name,
+            supported_actions=supported_actions,
+        )
 
 
 def _require_path(path: Path, description: str) -> Path:
@@ -78,13 +89,8 @@ def load_external_predictor(
     prompts: dict[str, str],
     device: str = "auto",
 ) -> PredictFunction:
-    """Load official InstructIR components once and return a NumPy prediction function.
+    """Load official InstructIR components once and return a NumPy predictor."""
 
-    Contract:
-      input: HWC float32 RGB in [0,1]
-      action: dehaze / derain / enhance
-      output: HWC float32 RGB in [0,1]
-    """
     try:
         import torch
     except ImportError as exc:
@@ -105,7 +111,7 @@ def load_external_predictor(
     except ImportError as exc:
         raise RuntimeError(
             f"Could not import the official InstructIR checkout at {repo}. "
-            "Verify that `models/`, `text/`, and `utils.py` exist."
+            "Verify that models/, text/, and utils.py exist."
         ) from exc
 
     with config_path.open("r", encoding="utf-8") as handle:
@@ -117,6 +123,8 @@ def load_external_predictor(
         torch_device = torch.device(device)
 
     torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     model = instructir.create_model(
         input_channels=cfg.model.in_ch,
         width=cfg.model.width,
@@ -138,12 +146,15 @@ def load_external_predictor(
     lm_head.load_state_dict(torch.load(lm_ckpt, map_location="cpu"), strict=True)
     lm_head.eval()
 
-    missing_prompts = set(InstructIRExecutor.supported_actions) - set(prompts)
-    if missing_prompts:
-        raise KeyError(f"Missing action prompts: {sorted(missing_prompts)}")
+    text_embeddings: dict[str, object] = {}
+    with torch.no_grad():
+        for action, prompt in prompts.items():
+            language_embedding = language_model(prompt)
+            text_embedding, _ = lm_head(language_embedding)
+            text_embeddings[action] = text_embedding.to(torch_device)
 
     def predict(image: np.ndarray, action: str) -> np.ndarray:
-        if action not in prompts:
+        if action not in text_embeddings:
             raise KeyError(f"No prompt configured for action {action!r}.")
         image_tensor = (
             torch.from_numpy(np.asarray(image, dtype=np.float32))
@@ -152,9 +163,7 @@ def load_external_predictor(
             .to(torch_device)
         )
         with torch.no_grad():
-            language_embedding = language_model(prompts[action])
-            text_embedding, _ = lm_head(language_embedding)
-            restored = model(image_tensor, text_embedding.to(torch_device))
+            restored = model(image_tensor, text_embeddings[action])
         output = restored[0].permute(1, 2, 0).detach().cpu().numpy()
         return np.clip(output, 0.0, 1.0).astype(np.float32)
 
