@@ -35,7 +35,7 @@ def build_executor(config: dict[str, Any], name: str) -> RestorationExecutor:
         executor_cfg = config["executor"]
         return InstructIRExecutor.from_external(
             external_repo=executor_cfg["external_repo"],
-            config_path=executor_cfg["config_path"],
+            config_file=executor_cfg["config_path"],
             image_checkpoint=executor_cfg["image_checkpoint"],
             lm_head_checkpoint=executor_cfg["lm_head_checkpoint"],
             prompts=prompts,
