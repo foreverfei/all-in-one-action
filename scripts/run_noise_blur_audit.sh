@@ -30,6 +30,9 @@ python -m lineB.scripts.analyze_directionality \
 python -m lineB.scripts.analyze_state_dependence \
   --config "${CONFIG}"
 
+python -m lineB.scripts.analyze_order_baselines \
+  --config "${CONFIG}"
+
 pytest -q
 
 echo "Completed directed coupling audit: config=${CONFIG}, executor=${EXECUTOR}"
