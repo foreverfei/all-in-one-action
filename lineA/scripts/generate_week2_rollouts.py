@@ -29,9 +29,10 @@ def build_executor(config: dict[str, Any], name: str) -> RestorationExecutor:
     if name == "instructir":
         from lineA.executors.instructir_wrapper import InstructIRExecutor
 
-        prompts = yaml.safe_load(
-            Path("shared/action_prompts.yaml").read_text(encoding="utf-8")
+        prompts_path = Path(
+            config.get("baseline", {}).get("prompts_file", "shared/action_prompts.yaml")
         )
+        prompts = yaml.safe_load(prompts_path.read_text(encoding="utf-8"))
         executor_cfg = config["executor"]
         return InstructIRExecutor.from_external(
             external_repo=executor_cfg["external_repo"],
@@ -104,7 +105,10 @@ def main() -> None:
 
         output_metadata = {
             **metadata,
+            "experiment": config.get("experiment", {}),
+            "baseline": config.get("baseline", {}),
             "executor": args.executor,
+            "executor_checkpoint": getattr(executor, "checkpoint", "mock-executor"),
             "directions": directions,
         }
         (program_dir / "metadata.json").write_text(
