@@ -31,7 +31,21 @@ Week 4：P3 未见组合与 backbone 泛化
 
 ---
 
-## 2. 核心文档入口
+## 2. 当前任务入口
+
+### Week 2
+
+| 角色 | Issue | 分支 |
+|---|---|---|
+| 学生 A | [#7 Counterfactual states and actual/oracle rollouts](https://github.com/foreverfei/all-in-one-action/issues/7) | `student-a/week2` |
+| 学生 B | [#8 Directed coupling and state-dependence audit](https://github.com/foreverfei/all-in-one-action/issues/8) | `student-b/week2` |
+| 教师 | [#9 Protocol and P1 scientific Gate](https://github.com/foreverfei/all-in-one-action/issues/9) | `main` |
+
+学生每日进展和周末结果统一评论在对应主 Issue 下，不新建每日 Issue。
+
+---
+
+## 3. 核心文档入口
 
 | 文档 | 用途 |
 |---|---|
@@ -44,7 +58,7 @@ Week 4：P3 未见组合与 backbone 泛化
 
 ---
 
-## 3. 周次文档命名规范
+## 4. 周次文档命名规范
 
 ```text
 docs/WEEK1_PLAN.md
@@ -75,7 +89,7 @@ docs/WEEK4_PLAN.md
 
 ---
 
-## 4. Issue、PR 与文档的职责
+## 5. Issue、PR 与文档的职责
 
 ```text
 Issue：任务、每日反馈、阻塞、实验数字、周末结论
@@ -88,7 +102,7 @@ result_summary.md：一次实验的完整结果记录
 
 ---
 
-## 5. 每周建立顺序
+## 6. 每周建立顺序
 
 教师在新一周开始前按以下顺序操作：
 
