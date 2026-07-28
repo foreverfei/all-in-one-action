@@ -1,7 +1,7 @@
 ---
 name: Blocker or shared bug
 about: Report a blocker that affects the weekly task, shared interface, or main branch
- title: "[Blocker][Week N][Line X] "
+title: "[Blocker][Week N][Line X] "
 labels: ""
 assignees: ""
 ---
