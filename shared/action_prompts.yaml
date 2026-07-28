@@ -1,5 +1,4 @@
 # Fixed action prompts. Changes require a protocol update.
-declare_version: 1
 dehaze: "Remove haze from the image."
 derain: "Remove rain streaks from the image."
 enhance: "Enhance the low-light image."
