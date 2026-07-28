@@ -12,6 +12,7 @@ dependencies = [
   "Pillow>=10.0",
   "PyYAML>=6.0",
   "pandas>=2.0",
+  "scipy>=1.10",
 ]
 
 [project.optional-dependencies]

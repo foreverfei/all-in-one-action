@@ -10,6 +10,8 @@ DEGRADATION_TO_ACTION = {
     "haze": "dehaze",
     "rain": "derain",
     "lowlight": "enhance",
+    "noise": "denoise",
+    "motion_blur": "deblur",
 }
 
 

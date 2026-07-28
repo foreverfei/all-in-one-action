@@ -1,4 +1,6 @@
-# Prompts are fixed during Week 1. Do not edit them inside student branches.
+# Fixed action prompts. Changes require a protocol update.
 dehaze: "Remove haze from the image."
 derain: "Remove rain streaks from the image."
 enhance: "Enhance the low-light image."
+denoise: "Remove Gaussian noise from the image while preserving image details."
+deblur: "Remove motion blur from the image while preserving image details."

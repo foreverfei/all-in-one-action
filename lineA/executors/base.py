@@ -36,7 +36,7 @@ class MockExecutor(RestorationExecutor):
     This class is not a scientific restoration baseline.
     """
 
-    supported_actions = ("dehaze", "derain", "enhance")
+    supported_actions = ("dehaze", "derain", "enhance", "denoise", "deblur")
 
     def restore(self, image: np.ndarray, action: str) -> np.ndarray:
         array = self._validate(image, action)
@@ -44,10 +44,12 @@ class MockExecutor(RestorationExecutor):
 
         if action == "dehaze":
             output = ImageEnhance.Contrast(pil).enhance(1.25)
-        elif action == "derain":
+        elif action in {"derain", "denoise"}:
             output = pil.filter(ImageFilter.MedianFilter(size=3))
         elif action == "enhance":
             output = ImageEnhance.Brightness(pil).enhance(1.20)
+        elif action == "deblur":
+            output = pil.filter(ImageFilter.UnsharpMask(radius=1.0, percent=130, threshold=2))
         else:
             raise AssertionError(action)
 

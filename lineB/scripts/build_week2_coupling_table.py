@@ -13,6 +13,29 @@ from lineB.coupling.directed_coupling import compute_directed_coupling
 from lineB.coupling.error_metrics import severity_score
 
 
+def degradation_fields(metadata: dict) -> dict[str, float]:
+    fields: dict[str, float] = {}
+    for step in metadata.get("degradation_program", []):
+        name = str(step["type"])
+        parameters = step.get("parameters", {})
+        if name == "noise":
+            fields["noise_sigma"] = float(parameters["sigma"])
+        elif name == "motion_blur":
+            fields["blur_length"] = float(parameters["length"])
+            fields["blur_angle_deg"] = float(parameters["angle_deg"])
+        elif name == "haze":
+            fields["haze_transmission"] = float(parameters["transmission"])
+            fields["haze_atmospheric_light"] = float(parameters["atmospheric_light"])
+        elif name == "rain":
+            fields["rain_density"] = float(parameters["density"])
+            fields["rain_length"] = float(parameters["length"])
+            fields["rain_opacity"] = float(parameters["opacity"])
+        elif name == "lowlight":
+            fields["lowlight_gamma"] = float(parameters["gamma"])
+            fields["lowlight_scale"] = float(parameters["scale"])
+    return fields
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
@@ -36,6 +59,7 @@ def main() -> None:
             )
             for direction in directions
         }
+        raw_parameters = degradation_fields(metadata)
 
         for direction in directions:
             action_i = direction["action_i"]
@@ -53,12 +77,17 @@ def main() -> None:
             )
             rows.append(
                 {
+                    "experiment_id": metadata.get("experiment", {}).get("id", "unspecified"),
+                    "executor": metadata.get("executor", "unknown"),
+                    "executor_checkpoint": metadata.get("executor_checkpoint", "unknown"),
                     "program_id": metadata["program_id"],
                     "clean_id": metadata["clean_id"],
+                    "parameter_set_index": metadata.get("parameter_set_index", -1),
                     "action_i": action_i,
                     "action_j": action_j,
                     "application_order": "->".join(metadata["application_order"]),
                     "severity_score": severity_score(metadata),
+                    **raw_parameters,
                     **result.__dict__,
                 }
             )

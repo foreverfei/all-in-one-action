@@ -1,0 +1,56 @@
+experiment:
+  id: pilot_div2k_noise_blur_instructir7d
+  role: directed_coupling_pilot
+  dataset: DIV2K_valid_first20
+  primary_executor: instructir_7d
+
+project:
+  seed: 2026
+  image_size: 256
+  image_preprocess: center_crop
+  expected_clean_count: 20
+  data_root: data/pilot_noise_blur
+  output_root: outputs/pilot_noise_blur
+
+executor:
+  name: instructir
+  external_repo: external/InstructIR
+  config_path: external/InstructIR/configs/eval5d.yml
+  image_checkpoint: external/InstructIR/models/im_instructir-7d.pt
+  lm_head_checkpoint: external/InstructIR/models/lm_instructir-7d.pt
+  device: cuda
+
+baseline:
+  method: InstructIR
+  checkpoint_variant: 7D
+  mode: frozen_sequential_actions
+  prompts_file: shared/action_prompts.yaml
+  compared_orders:
+    - [denoise, deblur]
+    - [deblur, denoise]
+
+# One pair, explicit parameter grid, and both application orders.
+degradation_pairs:
+  - [noise, motion_blur]
+
+degradation_parameter_sets:
+  noise:
+    - {sigma: 15}
+    - {sigma: 25}
+    - {sigma: 50}
+  motion_blur:
+    - {length: 9, angle_deg: -30}
+    - {length: 9, angle_deg: 30}
+    - {length: 17, angle_deg: -30}
+    - {length: 17, angle_deg: 30}
+
+coupling:
+  charbonnier_epsilon: 1.0e-3
+  decomposition_threshold: 1.0e-7
+  bootstrap_samples: 2000
+  bootstrap_seed: 2026
+
+reporting:
+  primary_metric: charbonnier
+  secondary_metrics: [psnr, lpips, dists]
+  matched_error_bins: 3

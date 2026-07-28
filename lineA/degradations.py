@@ -1,7 +1,10 @@
-"""Deterministic smoke-test degradations.
+"""Deterministic degradation operators used by the controlled experiments.
 
-These operators are infrastructure tests, not the final paper degradation protocol.
-All images use HWC float32 arrays in [0, 1].
+The original haze/rain/low-light operators are retained for the Week-1/Week-2
+infrastructure experiments. Gaussian noise and linear motion blur are added for
+the formal noise-blur coupling protocol.
+
+All images use HWC float32 RGB arrays in [0, 1].
 """
 
 from __future__ import annotations
@@ -11,6 +14,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+from scipy.ndimage import convolve
 
 
 @dataclass(frozen=True)
@@ -37,6 +41,12 @@ def _uniform(rng: np.random.Generator, bounds: Sequence[float]) -> float:
     return float(rng.uniform(float(bounds[0]), float(bounds[1])))
 
 
+def _scalar_or_uniform(value: Any, rng: np.random.Generator) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    return _uniform(rng, value)
+
+
 def sample_parameters(
     name: str,
     config: Mapping[str, Any],
@@ -60,6 +70,17 @@ def sample_parameters(
             "gamma": _uniform(rng, config["gamma"]),
             "scale": _uniform(rng, config["scale"]),
         }
+    elif name == "noise":
+        params = {
+            "sigma": _scalar_or_uniform(config["sigma"], rng),
+            "seed": int(rng.integers(0, 2**31 - 1)),
+        }
+    elif name == "motion_blur":
+        length = int(round(_scalar_or_uniform(config["length"], rng)))
+        params = {
+            "length": length if length % 2 == 1 else length + 1,
+            "angle_deg": _scalar_or_uniform(config["angle_deg"], rng),
+        }
     else:
         raise KeyError(f"Unsupported degradation: {name}")
     return SampledDegradation(name=name, parameters=params)
@@ -74,6 +95,53 @@ def apply_haze(image: np.ndarray, transmission: float, atmospheric_light: float)
 def apply_lowlight(image: np.ndarray, gamma: float, scale: float) -> np.ndarray:
     image = validate_image(image)
     result = scale * np.power(np.clip(image, 0.0, 1.0), gamma)
+    return np.clip(result, 0.0, 1.0).astype(np.float32)
+
+
+def apply_noise(image: np.ndarray, sigma: float, seed: int) -> np.ndarray:
+    """Apply additive white Gaussian noise.
+
+    ``sigma`` is expressed in the conventional 8-bit intensity scale, e.g.
+    sigma=25 corresponds to a standard deviation of 25/255 in [0,1].
+    """
+
+    image = validate_image(image)
+    if sigma < 0:
+        raise ValueError(f"Noise sigma must be non-negative, got {sigma}.")
+    rng = np.random.default_rng(int(seed))
+    noise = rng.normal(0.0, float(sigma) / 255.0, size=image.shape).astype(np.float32)
+    return np.clip(image + noise, 0.0, 1.0).astype(np.float32)
+
+
+def make_motion_blur_kernel(length: int, angle_deg: float) -> np.ndarray:
+    """Create a normalized odd-sized linear motion-blur kernel."""
+
+    length = int(length)
+    if length < 3:
+        raise ValueError(f"Motion-blur length must be >=3, got {length}.")
+    if length % 2 == 0:
+        length += 1
+
+    radius = length // 2
+    yy, xx = np.mgrid[-radius : radius + 1, -radius : radius + 1].astype(np.float32)
+    angle = np.deg2rad(float(angle_deg))
+    direction_x = np.cos(angle)
+    direction_y = np.sin(angle)
+    projection = xx * direction_x + yy * direction_y
+    perpendicular = -xx * direction_y + yy * direction_x
+    mask = (np.abs(perpendicular) <= 0.5) & (np.abs(projection) <= radius + 0.5)
+    kernel = mask.astype(np.float32)
+    if float(kernel.sum()) == 0.0:
+        kernel[radius, radius] = 1.0
+    kernel /= float(kernel.sum())
+    return kernel
+
+
+def apply_motion_blur(image: np.ndarray, length: int, angle_deg: float) -> np.ndarray:
+    image = validate_image(image)
+    kernel = make_motion_blur_kernel(length, angle_deg)
+    channels = [convolve(image[..., channel], kernel, mode="reflect") for channel in range(3)]
+    result = np.stack(channels, axis=-1)
     return np.clip(result, 0.0, 1.0).astype(np.float32)
 
 
@@ -114,6 +182,10 @@ def apply_degradation(image: np.ndarray, sampled: SampledDegradation) -> np.ndar
         return apply_rain(image, **sampled.parameters)
     if sampled.name == "lowlight":
         return apply_lowlight(image, **sampled.parameters)
+    if sampled.name == "noise":
+        return apply_noise(image, **sampled.parameters)
+    if sampled.name == "motion_blur":
+        return apply_motion_blur(image, **sampled.parameters)
     raise KeyError(f"Unsupported degradation: {sampled.name}")
 
 
