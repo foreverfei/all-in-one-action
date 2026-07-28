@@ -1,0 +1,38 @@
+project:
+  seed: 2026
+  image_size: 64
+  clean_count: 20
+  data_root: data/week2
+  output_root: outputs/week2
+
+executor:
+  name: instructir
+  external_repo: external/InstructIR
+  config_path: configs/eval5d.yml
+  image_checkpoint: REPLACE_WITH_LOCAL_IMAGE_CHECKPOINT
+  lm_head_checkpoint: REPLACE_WITH_LOCAL_LM_HEAD_CHECKPOINT
+  device: cuda
+
+degradation_pairs:
+  - [haze, rain]
+  - [haze, lowlight]
+  - [rain, lowlight]
+
+degradations:
+  haze:
+    transmission: [0.35, 0.60]
+    atmospheric_light: [0.80, 1.00]
+  rain:
+    density: [0.010, 0.025]
+    length: [12, 22]
+    angle_deg: [-15, 15]
+    opacity: [0.20, 0.35]
+  lowlight:
+    gamma: [1.8, 2.4]
+    scale: [0.50, 0.80]
+
+coupling:
+  charbonnier_epsilon: 1.0e-3
+  decomposition_threshold: 1.0e-7
+  bootstrap_samples: 200
+  bootstrap_seed: 2026
