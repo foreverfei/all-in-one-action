@@ -51,3 +51,6 @@ jobs:
             --config configs/week2_shared.yaml
           python -m lineB.scripts.analyze_state_dependence \
             --config configs/week2_shared.yaml
+      - name: Run formal noise-blur protocol smoke test
+        run: |
+          bash scripts/run_pilot_mock.sh configs/pilot_noise_blur.yaml
