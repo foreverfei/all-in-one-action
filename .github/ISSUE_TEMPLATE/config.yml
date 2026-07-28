@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project documentation index
+    url: https://github.com/foreverfei/all-in-one-action/blob/main/docs/README.md
+    about: Check the current Week plan, Gate, and workflow before creating an Issue.
+  - name: Student workflow
+    url: https://github.com/foreverfei/all-in-one-action/blob/main/docs/STUDENT_WORKFLOW.md
+    about: Daily update, blocker, result, and PR rules.
