@@ -3,6 +3,8 @@ set -euo pipefail
 
 CONFIG="${1:-configs/pilot_noise_blur.yaml}"
 
+python tools/check_experiment_paths.py --config "${CONFIG}"
+
 python -m lineA.scripts.generate_week2_states \
   --config "${CONFIG}" \
   --mock-clean-count 2
