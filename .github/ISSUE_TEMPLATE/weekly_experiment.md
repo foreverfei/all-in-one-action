@@ -18,6 +18,12 @@ Line：A / B
 教师：
 ```
 
+## 周计划
+
+```text
+docs/WEEKN_PLAN.md
+```
+
 ## 分支
 
 ```text
@@ -69,6 +75,10 @@ CSV：
 ## 每日反馈
 
 学生每天在本 Issue 下评论，不要每天新建 Issue。使用 `docs/STUDENT_WORKFLOW.md` 中的每日模板。
+
+## 周末结果
+
+学生使用 `docs/STUDENT_WORKFLOW.md` 中的周末模板提交最终评论，并关联结果 PR。
 
 ## PR
 
