@@ -17,6 +17,12 @@ def mean_charbonnier(
 
 
 def severity_score(metadata: dict) -> float:
+    """Return a coarse normalized score for exploratory correlation only.
+
+    Formal reports must also use the raw degradation parameters stored in the
+    coupling table. This scalar must not replace parameter-wise analyses.
+    """
+
     values: list[float] = []
     for step in metadata.get("degradation_program", []):
         parameters = step.get("parameters", {})
@@ -30,4 +36,8 @@ def severity_score(metadata: dict) -> float:
             values.append(
                 float(parameters["gamma"]) - 1.0 + 1.0 - float(parameters["scale"])
             )
+        elif step["type"] == "noise":
+            values.append(float(parameters["sigma"]) / 50.0)
+        elif step["type"] == "motion_blur":
+            values.append(float(parameters["length"]) / 17.0)
     return float(np.mean(values)) if values else 0.0
