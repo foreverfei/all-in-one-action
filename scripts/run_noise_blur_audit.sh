@@ -10,6 +10,8 @@ CONFIG="$1"
 INPUT_DIR="$2"
 EXECUTOR="${3:-instructir}"
 
+python tools/check_experiment_paths.py --config "${CONFIG}"
+
 python -m lineA.scripts.generate_week2_states \
   --config "${CONFIG}" \
   --input-dir "${INPUT_DIR}"
