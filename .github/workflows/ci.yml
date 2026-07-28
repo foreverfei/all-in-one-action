@@ -20,7 +20,7 @@ jobs:
           pip install -e ".[dev]"
       - name: Run unit tests
         run: pytest -q
-      - name: Run mock pipeline
+      - name: Run Week 1 mock pipeline
         run: |
           python -m lineA.scripts.generate_week1_data \
             --config configs/week1_shared.yaml \
@@ -35,3 +35,19 @@ jobs:
             --metrics psnr
           python -m lineB.scripts.validate_identity \
             --labels outputs/week1/labels/identity_check.csv
+      - name: Run Week 2 counterfactual coupling pipeline
+        run: |
+          python -m lineA.scripts.generate_week2_states \
+            --config configs/week2_shared.yaml \
+            --mock-clean-count 2
+          python -m lineA.scripts.generate_week2_rollouts \
+            --config configs/week2_shared.yaml \
+            --executor mock
+          python -m lineA.scripts.check_week2_integrity \
+            --config configs/week2_shared.yaml
+          python -m lineB.scripts.build_week2_coupling_table \
+            --config configs/week2_shared.yaml
+          python -m lineB.scripts.analyze_directionality \
+            --config configs/week2_shared.yaml
+          python -m lineB.scripts.analyze_state_dependence \
+            --config configs/week2_shared.yaml
