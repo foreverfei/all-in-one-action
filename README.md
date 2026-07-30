@@ -82,7 +82,9 @@ Orders:
 | Mid+Path | intermediate + two-step path loss |
 | Ours | intermediate + excess coupling + successor interface loss |
 
-PromptIR 只作为 one-shot final-restoration reference；Restormer denoise/deblur experts 作为后续跨架构对照，不阻塞当前 pilot。
+当前 Pilot 的正式模型只使用 frozen InstructIR-7D。Restormer 的官方彩色高斯去噪和运动去模糊专家可在
+Pilot 后作为分离模型链对照；PromptIR 和 OneRestore 的官方权重不覆盖当前 noise–motion blur
+组合，不纳入本轮实验。
 
 完整协议见 [docs/EXPERIMENT_PROTOCOL.md](docs/EXPERIMENT_PROTOCOL.md)。
 

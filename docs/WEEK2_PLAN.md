@@ -26,6 +26,15 @@
 如需改变数据、actions、prompts、primary metric 或 coupling 定义，先提出理由，并使用
 新的实验 ID；其他实现和分析选择由学生自行决定。
 
+### 模型短名单
+
+- **正式主模型**：frozen InstructIR-7D，两个官方 checkpoint 和 prompt 保持固定；
+- **可选跨架构对照**：Restormer 官方 color blind Gaussian denoiser + motion deblurring expert，仅在主 Pilot 完成后运行；
+- **工程测试**：`mock` executor，不得用于科学结论；
+- PromptIR、OneRestore、CURE 及其他模型不属于本周正式模型。
+
+学生可以自由设计 wrapper、缓存、诊断和分析，但不得在同一实验 ID 中更换模型、checkpoint 或 prompt。
+
 ## 3. Line A
 
 目标：生成可复现、可供 Line B 独立读取的 counterfactual states 和

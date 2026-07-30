@@ -147,14 +147,20 @@ single-step mid error 基本相当
 但 Ours 的 harmful coupling 更低
 ```
 
-### 4.4 后续外部方法对照
+### 4.4 模型使用边界
 
-以下方法不阻塞当前 pilot：
+| 级别 | 模型 | 用途 |
+|---|---|---|
+| 正式主模型 | frozen InstructIR-7D | Week 2 directed coupling 主结论 |
+| 可选跨架构对照 | Restormer color blind Gaussian denoiser + motion deblurring expert | 两个专家串联，检查现象是否仅存在于 InstructIR |
+| 工程测试 | mock executor | smoke test / CI，不报告科学结论 |
 
-1. **Restormer experts**：官方 Gaussian color denoiser + motion deblurring model，作为分离任务模型链的对照；
-2. **PromptIR**：作为 blind one-shot AiO final-restoration reference，只报告最终质量，不参与 action-specific coupling 定义。
+Restormer 对照只在 B0 完成后运行，并且必须使用官方预训练权重。PromptIR 官方权重只覆盖
+noise/rain/haze，OneRestore 官方 CDD-11 权重覆盖 low-light/haze/rain/snow；两者都不用于当前
+noise–motion blur 实验。CURE 和其他方法作为后续方法研究候选，不属于 Week 2 可执行模型。
 
-在没有完成统一 float32 wrapper 前，不允许通过 PNG 中间文件调用这些 baseline。
+在没有完成统一 float32 wrapper 前，不允许通过 PNG 中间文件调用外部 baseline。每个正式实验需记录
+model repository commit、checkpoint 文件名与 SHA256；更换模型、checkpoint 或 prompt 必须使用新的实验 ID。
 
 ## 5. Primary 和 secondary metrics
 
