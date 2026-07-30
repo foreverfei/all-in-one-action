@@ -21,11 +21,11 @@
 
 | 角色 | Issue | 分支 |
 |---|---|---|
-| 学生 A | [#7 Counterfactual states and actual/oracle rollouts](https://github.com/foreverfei/all-in-one-action/issues/7) | `student-a/week2` |
-| 学生 B | [#8 Directed coupling and state-dependence audit](https://github.com/foreverfei/all-in-one-action/issues/8) | `student-b/week2` |
+| 学生 A | [#7 Counterfactual states and actual/oracle rollouts](https://github.com/foreverfei/all-in-one-action/issues/7) | `student-a` |
+| 学生 B | [#8 Directed coupling and state-dependence audit](https://github.com/foreverfei/all-in-one-action/issues/8) | `student-b` |
 | 教师 | [#9 Protocol and scientific review](https://github.com/foreverfei/all-in-one-action/issues/9) | `main` |
 
-每日进展和周末结果统一评论在对应主 Issue 下。
+有重要结果、方向变化或阻塞时，在对应主 Issue 下更新。
 
 ## 3. 文档入口
 
@@ -43,7 +43,7 @@
 
 ```text
 EXPERIMENT_PROTOCOL：固定数据集、baseline、参数和命令
-WEEK_PLAN：安排当周任务、分工和验收标准
+WEEK_PLAN：说明本周问题、固定边界、分工和 Gate
 Issue：记录任务进展、阻塞和当前数字
 PR：提交代码、配置、测试和文档
 result_summary.md：记录一次正式实验的结果与结论范围

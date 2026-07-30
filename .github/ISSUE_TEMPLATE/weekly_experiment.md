@@ -1,98 +1,44 @@
 ---
 name: Weekly experiment task
-about: Create one Line A or Line B task and feedback thread for a project week
+about: Define a concise research task for Line A or Line B
 title: "[Line X][Week N] "
 labels: ""
 assignees: ""
 ---
 
-## 本周唯一问题
+## 本周问题
 
-> 
+> 用一两句话说明希望回答的问题。
 
-## 负责人
+## 固定边界
+
+- （填写）
+- （填写）
+
+只列真正不能自由改变的设置。
+
+## 最低证据
+
+- （填写）
+- （填写）
+
+## 自由探索
+
+实现路线、辅助实验、分析方法和工作节奏由学生自行决定。新的假设和负结果都可以记录。
+
+## 协作
 
 ```text
 Line：A / B
-学生：
-教师：
+分支：student-a / student-b
+关联计划：docs/WEEKN_PLAN.md
 ```
 
-## 周计划
-
-```text
-docs/WEEKN_PLAN.md
-```
-
-## 分支
-
-```text
-student-x/weekN
-```
-
-## 前置 Gate
-
-- [ ] Week N-1 已由教师判定 PASS
-- [ ] `docs/WEEKN_PLAN.md` 已锁定
-- [ ] 数据、checkpoint 和配置版本已固定
-
-## 任务
-
-- [ ]
-- [ ]
-- [ ]
-
-## 最低交付
-
-```text
-代码：
-数据或服务器路径：
-CSV：
-图表：
-报告：
-```
-
-## 核心指标
-
-| 指标 | 目标或阈值 |
-|---|---:|
-|  |  |
+有重要结果、方向变化或阻塞时在本 Issue 更新，不要求每日填写固定模板。
 
 ## Gate
 
-### 工程正确
-
-- [ ]
-
-### 定义正确
-
-- [ ]
-
-### 科学现象成立
-
-- [ ]
-
-## 每日反馈
-
-学生每天在本 Issue 下评论，不要每天新建 Issue。使用 `docs/STUDENT_WORKFLOW.md` 中的每日模板。
-
-## 周末结果
-
-学生使用 `docs/STUDENT_WORKFLOW.md` 中的周末模板提交最终评论，并关联结果 PR。
-
-## PR
-
-```text
-[Line X][Week N] ...
-```
-
-PR 描述必须关联本 Issue：
-
-```text
-Closes #<issue_number>
-```
-
-## 教师最终决策
+教师根据结果正确性、证据质量和结论边界给出：
 
 ```text
 PASS / FAIL / REPEAT / STOP

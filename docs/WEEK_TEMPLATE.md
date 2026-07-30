@@ -1,216 +1,59 @@
-# Week N 执行计划：阶段名称
+# Week N：简短标题
 
-> 用途：教师锁定本周问题、学生任务、代码边界、交付物和 Gate。  
-> 前置条件：仅在 Week N-1 Gate 为 PASS 时创建。  
-> 原则：本周只回答一个核心问题，不提前实现下一阶段。
+## 1. 本周问题
 
----
+用一两句话写清本周希望回答的问题。不要把实现步骤写成问题。
 
-## 1. 本周定位
+## 2. 固定边界
 
-### 与前一周的关系
+只列出不能自由改变的内容，例如：
 
-```text
-Week N-1 已完成：
+- 数据或 split；
+- baseline / checkpoint；
+- primary metric 或核心定义；
+- 资源上限；
+- 明确不做的方向。
 
-Week N 新增：
-```
+尽量控制在 3–6 项。其余选择默认开放给学生。
 
-### 本周唯一科学问题
+## 3. Line A
 
-> 
+目标：
 
-### 本周不做
+最低证据：
 
-```text
-不做内容 1
-不做内容 2
-不做内容 3
-```
+分支：`student-a`
 
----
+## 4. Line B
 
-## 2. 教师统一配置
+目标：
 
-```text
-数据版本：
-Executor / checkpoint：
-Actions：
-训练或评估 split：
-Primary metric：
-Secondary metrics：
-Random seeds：
-输出根目录：
-Gate threshold：
-```
+最低证据：
 
-学生不得自行修改上述内容。
+分支：`student-b`
 
----
+## 5. 自由探索空间
 
-## 3. 团队分工
+说明学生可以自由选择的部分，例如实现路线、辅助实验、统计方法、可视化和协作节奏。
+学生可以提出超出原计划的假设，只需区分主结果和探索结果。
 
-| 任务线 | 负责人 | 本周唯一问题 |
+## 6. Gate
+
+用少量可判断的问题描述验收标准：
+
+- 结果是否正确、可追溯；
+- 证据是否回答本周问题；
+- 失败和不确定性是否被说明；
+- 是否值得继续下一阶段。
+
+教师决策：`PASS / FAIL / REPEAT / STOP`
+
+## 7. 协作入口
+
+| 角色 | Issue | 分支 |
 |---|---|---|
-| Line A | 学生 A |  |
-| Line B | 学生 B |  |
-| Protocol & Review | 教师 |  |
+| Line A |  | `student-a` |
+| Line B |  | `student-b` |
+| 教师 |  | `main` |
 
-两条线仅通过固定文件接口和 metadata schema 协作。
-
----
-
-# 4. Line A
-
-## 4.1 保留代码
-
-```text
-```
-
-## 4.2 新增代码
-
-```text
-```
-
-## 4.3 输入
-
-```text
-```
-
-## 4.4 输出
-
-```text
-```
-
-## 4.5 最低交付
-
-```text
-```
-
-## 4.6 完成标准
-
-- [ ] 
-- [ ] 
-- [ ] 
-
----
-
-# 5. Line B
-
-## 5.1 保留代码
-
-```text
-```
-
-## 5.2 新增代码
-
-```text
-```
-
-## 5.3 输入
-
-```text
-```
-
-## 5.4 输出
-
-```text
-```
-
-## 5.5 最低交付
-
-```text
-```
-
-## 5.6 完成标准
-
-- [ ] 
-- [ ] 
-- [ ] 
-
----
-
-# 6. 每日节点
-
-| 日期 | Line A | Line B | 教师检查 |
-|---|---|---|---|
-| Day 1 |  |  |  |
-| Day 2 |  |  |  |
-| Day 3 |  |  |  |
-| Day 4 |  |  |  |
-| Day 5 |  |  |  |
-
----
-
-# 7. 自动测试
-
-新增：
-
-```text
-tests/test_*.py
-```
-
-必须验证：
-
-- [ ] 数据或状态语义；
-- [ ] action direction / file mapping；
-- [ ] 核心公式或 loss decomposition；
-- [ ] shape、dtype、range；
-- [ ] mock pipeline 可运行。
-
----
-
-# 8. 本周 Gate
-
-## Gate A：工程正确
-
-- [ ] 
-
-## Gate B：定义正确
-
-- [ ] 
-
-## Gate C：科学现象成立
-
-- [ ] 
-
-教师最终决策：
-
-```text
-PASS / FAIL / REPEAT / STOP
-```
-
----
-
-# 9. 下一周启动条件
-
-只有满足以下条件，才创建 `WEEK{N+1}_PLAN.md`：
-
-```text
-```
-
----
-
-# 10. Issue 与 PR
-
-本周创建：
-
-```text
-[Line A][Week N] ...
-[Line B][Week N] ...
-[Teacher][Week N] ...
-```
-
-学生分支：
-
-```text
-student-a/weekN
-student-b/weekN
-```
-
-PR 标题：
-
-```text
-[Line A][Week N] ...
-[Line B][Week N] ...
-```
+不要求固定每日计划。学生在出现有意义的结果、方向变化或阻塞时更新 Issue。
