@@ -1,125 +1,364 @@
-# Week 2：Noise–Blur Directed Coupling Pilot
+# Week 2：Counterfactual Coupling 测量协议验证
 
-## 1. 本周问题
+## 1. 本周定位
 
-在 predecessor 单步误差相近时，`denoise -> deblur` 与
-`deblur -> denoise` 是否仍产生不同的 directed coupling？这种差异会不会随图像、
-退化强度或退化生成顺序变化？
+Week 2 只验证实验测量链路是否正确，不使用真实 InstructIR 结果建立科学结论。
 
-本周目标是得到可信的 Pilot 证据，不预设结果必须为正。
+本周需要回答：
+
+1. noise–motion blur 数据能否按固定参数和 seed 可复现生成；
+2. counterfactual oracle states 是否满足预期语义并可由 metadata 精确重渲染；
+3. actual/oracle rollout 的 action、方向和文件映射是否正确；
+4. directed coupling、paired direction 和分析表是否通过人工可计算的 golden fixtures。
+
+固定阶段链路：
+
+```text
+Week 1：基础 rollout / metrics / identity scaffold
+  -> Week 2：counterfactual measurement protocol validation
+  -> Week 3：真实 InstructIR competence + DIV2K-20 scientific pilot
+  -> 后续：根据 Week 3 Gate 决定正式实验或方法设计
+```
+
+**Week 2 PASS 只表示测量协议可信，不表示 directed coupling 已经在真实模型上成立。**
+
+---
 
 ## 2. 固定边界
 
-正式设置以 `docs/EXPERIMENT_PROTOCOL.md` 和
-`configs/pilot_noise_blur.yaml` 为准。当前只固定：
+Week 2 使用正式 noise–blur 参数定义，但默认只运行 mock/golden 验证：
 
-- DIV2K validation 前 20 张，中心裁剪 256×256；
-- noise + motion blur，两个 degradation application orders；
-- frozen InstructIR-7D，actions 为 `denoise` / `deblur`；
-- 480 degradation programs、960 directed action paths；
-- primary metric 为 Charbonnier distance；
-- coupling 定义和 action/degradation mapping 不变；
-- 本周不训练模型，也不实现 RL 或 planner。
+```text
+Degradations:
+  Gaussian noise: sigma = 15 / 25 / 50
+  Motion blur: length = 9 / 17
+  Motion blur angle = -30 / +30 degrees
+Application order:
+  noise -> motion_blur
+  motion_blur -> noise
+Restoration actions:
+  denoise
+  deblur
+Primary distance:
+  mean Charbonnier, epsilon = 1e-3
+```
 
-旧 haze/rain/low-light 配置只用于工程 smoke test。
+默认 smoke 规模：
 
-如需改变数据、actions、prompts、primary metric 或 coupling 定义，先提出理由，并使用
-新的实验 ID；其他实现和分析选择由学生自行决定。
+```text
+2 mock clean images
+× 3 noise levels
+× 4 blur settings
+× 2 degradation application orders
+= 48 degradation programs
+= 96 directed action paths
+```
 
-### 模型短名单
+本周禁止：
 
-- **正式主模型**：frozen InstructIR-7D，两个官方 checkpoint 和 prompt 保持固定；
-- **可选跨架构对照**：Restormer 官方 color blind Gaussian denoiser + motion deblurring expert，仅在主 Pilot 完成后运行；
-- **工程测试**：`mock` executor，不得用于科学结论；
-- PromptIR、OneRestore、CURE 及其他模型不属于本周正式模型。
+- 使用 mock executor 数值判断 coupling 是否存在；
+- 将 96 条 mock path 作为论文结果；
+- 更换 action pair、coupling 定义或 primary distance；
+- 训练 InstructIR、增加 loss、实现 planner、RL 或 interface learning；
+- 只检查文件存在而不验证文件语义和方向映射。
 
-学生可以自由设计 wrapper、缓存、诊断和分析，但不得在同一实验 ID 中更换模型、checkpoint 或 prompt。
+旧 haze/rain/low-light 设置仅保留为历史工程 smoke，不属于当前论文主协议。
 
-## 3. Line A
+---
 
-目标：生成可复现、可供 Line B 独立读取的 counterfactual states 和
-actual/oracle rollouts。
+## 3. Line A：数据、Oracle 与 Rollout 语义
 
-最低证据：
+长期分支：
 
-- Pilot 覆盖率和失败情况；
-- 参数、seed、application order、checkpoint 和 commit 可追溯；
-- 抽样证明 counterfactual state 与 rollout 语义正确；
-- 数据能够通过双方约定的文件或 metadata 接口交给 Line B。
+```text
+student-a
+```
 
-Line A 可以自行决定数据组织、缓存方式、抽查策略、错误诊断和可视化形式。
+### 3.1 数据生成
 
-分支：`student-a`
+运行参数网格后必须得到：
 
-## 4. Line B
+```text
+48 programs
+96 directed paths
+```
 
-目标：判断 coupling 是否存在、是否具有方向性，以及这种现象能否由 mid error 单独解释。
+每个 program 至少记录：
 
-最低证据：
+```text
+experiment_id
+program_id
+clean_id
+noise sigma / seed
+blur length / angle
+application order
+source path
+oracle-mid paths
+config
+repository commit
+```
 
-- 可追溯到单条 path 的 coupling 结果；
-- 两个 restoration directions 的比较；
-- matched mid-error 或其他合理的控制分析；
-- 不确定性、失败案例和负结果；
-- non-commutativity 与 directed coupling 分开解释。
+必须验证：
 
-Line B 可以自行决定统计组织、分箱或匹配方法、辅助指标、图表和案例选择。若采用不同于
-默认脚本的方法，需要说明理由和对结论的影响。
+- 相同 seed 重跑结果完全一致；
+- Tensor 为 HWC float32 RGB `[0,1]`；
+- 无 NaN、Inf 和静默缺失；
+- 两种 application order 使用相同参数集合和对应 noise realization；
+- `program_id` 唯一且能够追溯到全部生成参数。
 
-分支：`student-b`
+### 3.2 Counterfactual oracle 语义
 
-## 5. 教师职责
+对于 noise + motion blur source：
 
-- 确认正式协议、数据清单和 checkpoints；
-- 在 Pilot 早期抽查少量样本的方向和语义；
-- 处理需要改变正式实验边界的提议；
-- 根据证据给出 `PASS / FAIL / REPEAT / STOP`。
+```text
+oracle_mid__denoise = 只保留 motion blur
+oracle_mid__deblur  = 只保留 Gaussian noise
+```
 
-教师关注结论是否可信，不要求学生采用指定的实现步骤或每日节奏。
+自动验证：
 
-## 6. 建议入口
+```text
+source == rerender(full degradation program)
+oracle_mid__denoise == rerender(blur only)
+oracle_mid__deblur == rerender(noise only)
+max_abs_error < 1e-7
+```
 
-仓库已有脚本可作为起点，但不是唯一允许的工作路线：
+人工抽查至少覆盖：
+
+```text
+2 张 mock image
+× 轻 / 中 / 重不同参数条件
+```
+
+每组查看：
+
+```text
+clean
+source
+oracle_mid__denoise
+oracle_mid__deblur
+```
+
+### 3.3 Rollout 映射
+
+每条有向路径必须满足：
+
+```text
+actual_mid(i) = T_i(source)
+actual_final(i -> j) = T_j(actual_mid(i))
+oracle_successor(i -> j) = T_j(oracle_mid(i))
+final_target = clean
+```
+
+使用具有可识别确定性行为的 mock executor 或 golden fixture，检查：
+
+- `action_i` / `action_j` 没有交换；
+- 两个方向不会覆盖同一文件；
+- oracle-mid 没有读取错误；
+- reverse path 与当前 path 正确配对；
+- degradation application order 与 restoration action order 分开记录。
+
+### Line A 最低交付
+
+```text
+week2_integrity_report.json
+48-program manifest
+oracle rerender check
+rollout direction check
+失败与缺失记录
+student_A_week2.md 或 Issue 总结
+```
+
+---
+
+## 4. Line B：Coupling 数值与分析脚本验证
+
+长期分支：
+
+```text
+student-b
+```
+
+### 4.1 Directed coupling 定义
+
+```text
+mid_error
+  = d(actual_mid, oracle_mid)
+
+successor_intrinsic_error
+  = d(oracle_successor, clean)
+
+actual_path_error
+  = d(actual_final, clean)
+
+signed_coupling
+  = actual_path_error - successor_intrinsic_error
+
+harmful_coupling
+  = max(signed_coupling, 0)
+
+non_commutativity
+  = d(actual_final_i_to_j, actual_final_j_to_i)
+```
+
+`non_commutativity` 与 `directed coupling` 必须分别报告。
+
+### 4.2 Golden fixtures
+
+至少实现以下三类人工可计算 fixture：
+
+| Fixture | 条件 | 预期 |
+|---|---|---|
+| Zero | `actual_final = oracle_successor` | `signed=0, harmful=0` |
+| Harmful | `actual_path_error > successor_intrinsic_error` | `signed>0, harmful=signed` |
+| Beneficial | `actual_path_error < successor_intrinsic_error` | `signed<0, harmful=0` |
+
+数值误差要求：
+
+```text
+absolute error < 1e-7
+```
+
+现有 `decomposition_error` 只作为实现一致性检查，不能替代 oracle、方向和文件语义验证。
+
+### 4.3 Coupling 表不变量
+
+`directed_coupling.csv` 必须满足：
+
+```text
+row count = 96
+每个 program 恰好 2 个 restoration directions
+唯一键 = experiment_id + program_id + action_i + action_j
+重复唯一键 = 0
+NaN / Inf = 0
+缺失 reverse direction = 0
+```
+
+同一 program 的两个方向必须共享：
+
+```text
+clean_id
+noise parameters and seed
+blur parameters
+application order
+```
+
+### 4.4 分析脚本 fixture
+
+人为构造已知 direction difference 的小表，验证：
+
+```text
+directionality_summary.csv
+directional_asymmetry.csv
+state_dependence_report.csv
+matched_error_analysis.csv
+order_baseline_summary.csv
+```
+
+验收重点是分组、配对和字段正确，不解释 mock 数值的科学意义。
+
+### Line B 最低交付
+
+```text
+golden fixture tests
+directed_coupling.csv schema check
+paired-direction fixture
+analysis output validation
+student_B_week2.md 或 Issue 总结
+```
+
+---
+
+## 5. 执行入口
 
 ```bash
 bash scripts/run_pilot_mock.sh configs/pilot_noise_blur.yaml
-
-python tools/prepare_image_split.py \
-  --input-dir /datasets/DIV2K/DIV2K_valid_HR \
-  --output-dir data_sources/div2k_valid_first20 \
-  --count 20 \
-  --offset 0 \
-  --mode symlink
-
-bash scripts/run_noise_blur_audit.sh \
-  configs/pilot_noise_blur.yaml \
-  data_sources/div2k_valid_first20 \
-  instructir
 ```
 
-学生可以拆分、替换或扩展分析流程，只要不改变固定边界，并保留可复核证据。
+该命令只验证：
 
-## 7. Pilot Gate
+```text
+noise / motion-blur operators
+counterfactual lattice
+actual / oracle rollout
+integrity checks
+coupling table
+analysis script execution
+unit tests
+```
 
-### 数据与实现
+不得将输出中的 coupling 均值、方向差异或 order gap 用作科学结论。
 
-- 结果覆盖范围明确，缺失和失败均有说明；
-- 关键状态和方向可复现、可追溯；
-- coupling 分解和 direction mapping 正确。
+---
 
-### 科学判断
+## 6. 教师检查
 
-结果需要回答：
+### Check A：数据正确性
 
-1. coupling 是否存在；
-2. 两个方向是否不同；
-3. 控制 mid error 后差异是否仍在；
-4. 现象对图像、强度或 application order 是否敏感。
+- 参数网格、seed 和 program 数量正确；
+- source 与 oracle states 可重渲染；
+- dtype、shape、range 和 metadata 正确。
 
-允许结论为“没有足够证据”或负结果。Gate 根据证据质量判断，而不是根据是否得到预期
-现象判断。
+### Check B：路径语义
 
-## 8. 协作
+- action 和 degradation 映射正确；
+- actual/oracle path 没有错位；
+- 两个 restoration directions 正确配对。
+
+### Check C：数值实现
+
+- Charbonnier 和 coupling golden fixtures 正确；
+- 表结构、唯一键、配对和分析 fixture 正确；
+- 失败、不确定性和已知限制完整记录。
+
+---
+
+## 7. Week 2 Gate
+
+### PASS
+
+以下条件全部满足：
+
+```text
+48 programs / 96 paths 完整或全部失败均有明确记录
+source 和 oracle states 可精确重渲染
+rollout action/path mapping 正确
+golden coupling fixtures 全部通过
+coupling table 不变量全部通过
+分析脚本 fixture 全部通过
+pytest 和 mock pipeline 通过
+Line B 可独立读取 Line A 输出
+```
+
+允许结论：
+
+> Counterfactual state construction, ordered rollout generation, and directed coupling measurement have passed engineering and semantic validation.
+
+不允许结论：
+
+> Directed coupling has been demonstrated on a real restoration model.
+
+### REPEAT
+
+出现以下任一情况：
+
+```text
+数量或 metadata 不一致
+oracle state 无法重渲染
+action/path mapping 不确定
+golden fixture 失败
+分析脚本配对错误
+存在静默缺失
+```
+
+### STOP
+
+只有 counterfactual 定义本身无法稳定构造或无法形成可审计测量接口时，才停止当前协议。
+
+---
+
+## 8. Issue 与分支
 
 | 角色 | Issue | 分支 |
 |---|---|---|
@@ -127,10 +366,24 @@ bash scripts/run_noise_blur_audit.sh \
 | Line B | [#8](https://github.com/foreverfei/all-in-one-action/issues/8) | `student-b` |
 | 教师 | [#9](https://github.com/foreverfei/all-in-one-action/issues/9) | `main` |
 
-进展在对应 Issue 中按里程碑更新，不要求每日填写固定模板。PR 只需说明修改、验证证据和
-已知限制。
+学生在对应 Issue 中提交：
 
-## 9. Pilot 之后
+- 执行命令和 commit；
+- 核心验证数字；
+- 结果路径；
+- 失败和限制；
+- 建议 `PASS / REPEAT / STOP`。
 
-若证据支持继续，运行 DIV2K 100 张和 Kodak24；主要现象稳定后再制定 Week 3 方法计划。
-若证据不足，则记录原因，选择补充实验、调整协议或停止该方向。
+---
+
+## 9. Week 3 启动条件
+
+只有 Week 2 为 `PASS`，才进入 [WEEK3_PLAN.md](WEEK3_PLAN.md)：
+
+```text
+真实 InstructIR action competence
+-> 2-image mini-pilot
+-> DIV2K-20 scientific pilot
+-> clean_id-cluster statistical analysis
+-> PASS / FAIL / REPEAT / STOP
+```
