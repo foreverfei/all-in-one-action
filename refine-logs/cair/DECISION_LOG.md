@@ -73,7 +73,7 @@ I_s(a\rightarrow b)=g_{F(s,a)}(b)-g_s(b)
 \sum_{t=0}^{H-1}g_{s_t}(a_t)=M(s_H,x^*)-M(s_0,x^*).
 \]
 
-使用 \(\gamma<1\) 会额外偏好早期改善并改变最终质量目标，当前不引入这一自由度。计算预算由最大 horizon 和 feasible-action mask 约束，不通过折扣或动态 reward 权重处理。
+使用 \(\gamma<1\) 会额外偏好早期改善并改变最终质量目标。计算预算由最大 horizon 和 feasible-action mask 约束，不通过折扣或动态 reward 权重处理。
 
 ---
 
@@ -81,15 +81,7 @@ I_s(a\rightarrow b)=g_{F(s,a)}(b)-g_s(b)
 
 ### 不采用的方案
 
-不采用“G0–G3 设置 \(\gamma=0\)，再把 influence 作为单步耦合惩罚”的方案。
-
-当 \(\gamma=0\) 时：
-
-\[
-P_{\mathrm{CF}}(s,a)=\hat g_s(a),
-\]
-
-有向 influence 从 value prior 中消失。另行加入“耦合惩罚”会变成缺乏精确定义的启发式项，无法证明收益来自二步反事实分解。
+不采用“G0–G3 设置 \(\gamma=0\)，再把 influence 作为单步耦合惩罚”的方案。当 \(\gamma=0\) 时，prior 退化为 \(\hat g_s(a)\)，有向 influence 从 value 建模中消失；另行加入耦合惩罚会变成缺乏精确二步解释的启发式项。
 
 ### 最终 staging
 
@@ -103,28 +95,37 @@ P_{\mathrm{CF}}(s,a)=\hat g_s(a),
 
 G5 每次只执行当前选中的一个动作，然后重新观察状态并重新计算 prior；它是 receding-horizon selective control。只有 G6 通过后才允许声称“序列策略有效”。
 
-### 固定 aggregator
+### 固定 aggregator 与 STOP
 
-主方法不保留未定义的 `Agg`。固定：
+对非 STOP 动作固定：
 
 \[
 P_{\mathrm{CF}}(s,a)
 =
 \hat g_s(a)
 +
-\max_{b\in\mathcal A_{\mathrm{feasible}}}
-\left[\hat g_s(b)+\hat I_s(a\rightarrow b)\right].
+\max_{b\in\mathcal A_{\mathrm{feasible}}(F(s,a))}
+\left[\hat g_s(b)+\hat I_s(a\rightarrow b)\right],
+\qquad a\neq\mathrm{STOP}.
 \]
 
-其中 STOP 满足：
+STOP 是终止动作，不继续 lookahead：
 
 \[
-\hat g_s(\mathrm{STOP})=0,
-\qquad
-\hat I_s(a\rightarrow\mathrm{STOP})=0.
+P_{\mathrm{CF}}(s,\mathrm{STOP})=0.
 \]
 
-`log-sum-exp`、expectile 或 top-k aggregation 只能作为 G4 之后的消融，不能替代主定义。
+作为标签约定：
+
+\[
+g_s(\mathrm{STOP})=0,
+\quad
+I_s(a\rightarrow\mathrm{STOP})=0,
+\quad
+I_s(\mathrm{STOP}\rightarrow b)=0.
+\]
+
+当执行 \(a\) 后预算耗尽时，第二步 feasible set 只含 STOP，因此 prior 退化为 \(\hat g_s(a)\)。`log-sum-exp`、expectile 或 top-k aggregation 只能作为 G4 之后的消融，不能替代主定义。
 
 ---
 
@@ -181,8 +182,6 @@ z_s=E_\phi(x_s),
 4. permutation seed 固定并记录；
 5. gain prediction \(\hat g_s\) 保持原状态，不随 influence 一起交换。
 
-得到：
-
 \[
 \tilde I_s^{\mathrm{state}}(a\rightarrow b)
 =
@@ -191,21 +190,32 @@ z_s=E_\phi(x_s),
 
 ### D-pair：ordered-pair shuffle
 
-目的：保留每个状态的 influence 数值 multiset，只破坏有向动作对语义。
+目的：保留每个状态的 influence 数值 multiset 和 pair 类型边缘分布，只破坏具体动作对语义。
 
 固定实现：
 
-1. 对全部非对角有序动作对构造固定 derangement \(\rho\)；
-2. 同一 seed 下所有 train/val/test state 使用同一个 \(\rho\)；
-3. 对角项和 STOP 相关项固定为零，不参与置换；
-4. 不重新采样数值，不改变每个状态的 influence 边缘分布。
+1. 对全部非 STOP、非对角有序动作对构造固定 derangement \(\rho_{off}\)；
+2. 对全部非 STOP 对角项 \((a,a)\) 构造独立固定 derangement \(\rho_{diag}\)；
+3. 同一 seed 下所有 train/val/test state 使用相同的两组 permutation；
+4. STOP 相关项按定义固定为零，不参与置换；
+5. 不重新采样数值，不改变每个状态的 off-diagonal 与 diagonal influence multiset。
 
-得到：
+非 STOP 对角项不得置零，因为：
+
+\[
+I_s(a\rightarrow a)=g_{F(s,a)}(a)-g_s(a)
+\]
+
+刻画重复执行同一动作后的饱和、持续增益或反向作用。
 
 \[
 \tilde I_s^{\mathrm{pair}}(a\rightarrow b)
 =
-\hat I_s(\rho(a,b)).
+\begin{cases}
+\hat I_s(\rho_{off}(a,b)), & a\neq b,\\
+\hat I_s(\rho_{diag}(a,a)), & a=b,\\
+0, & a=\mathrm{STOP}\ \text{or}\ b=\mathrm{STOP}.
+\end{cases}
 \]
 
 CAIR 必须同时优于 state-shuffled 与 pair-shuffled prior，才能支持“state-conditioned directed influence”这一完整 claim。
@@ -227,8 +237,12 @@ P_{\mathrm{CF}}(s,a)
 =
 \hat g_s(a)
 +
-\max_{b\in\mathcal A_{\mathrm{feasible}}}
-\left[\hat g_s(b)+\hat I_s(a\rightarrow b)\right]
+\max_b\left[\hat g_s(b)+\hat I_s(a\rightarrow b)\right],
+\quad a\neq\mathrm{STOP}
+\]
+
+\[
+P_{\mathrm{CF}}(s,\mathrm{STOP})=0
 \]
 
 \[
@@ -236,18 +250,23 @@ Q_\theta(s,a)
 =
 \operatorname{sg}[P_{\mathrm{CF}}(s,a)]
 +
-\Delta Q_\theta(s,a).
+\Delta Q_\theta(s,a),
+\quad a\neq\mathrm{STOP}
 \]
 
-对于真实 oracle 标签，二步关系为：
+\[
+Q_\theta(s,\mathrm{STOP})=0.
+\]
+
+对于非 STOP 动作，真实 oracle 二步关系为：
 
 \[
 Q_2^*(s,a)
 =
-g_s(a)+\max_b\left[g_s(b)+I_s(a\rightarrow b)\right],
+g_s(a)+\max_b\left[g_s(b)+I_s(a\rightarrow b)\right].
 \]
 
-它等价于从状态 \(s\) 先执行 \(a\)，再选择最佳第二步动作的最终 PSNR 增量。该等式是 CAIR prior 的依据。
+它等价于从状态 \(s\) 先执行 \(a\)，再选择最佳第二步动作的最终 PSNR 增量，是 CAIR prior 的依据。
 
 ---
 
